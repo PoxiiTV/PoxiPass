@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="src-tauri/icons/128x128@2x.png" alt="PoxiPass" width="128" />
+<img src=".assets/banner.png" alt="PoxiPass" width="100%" />
 
-# PoxiPass
+<br />
 
 ![Versión](https://img.shields.io/badge/versión-0.3.0-3b82f6?style=flat-square)
 ![Plataforma](https://img.shields.io/badge/Windows-10%20%7C%2011-34d399?style=flat-square)
@@ -67,11 +67,21 @@ Busca la última versión en **[Releases](../../releases/latest)**:
 |---|---|
 | `PoxiPass-Setup-x.y.z.exe` | **Instalador**. Se actualiza solo |
 | `PoxiPass-Portable-x.y.z.exe` | **Portable**. Se ejecuta tal cual, no instala nada |
+| `PoxiPass-Extension-x.y.z.zip` | **Extensión** para Chrome, Edge, Brave, Opera y Vivaldi |
 
 Requiere Windows 10 u 11 (64 bits) y WebView2, que ya viene de serie.
 
 > 🛡️ Si Windows dice «Windows protegió tu PC», pulsa **Más información → Ejecutar de todas formas**. Sale con
 > todos los programas nuevos sin firma de pago; el código está aquí mismo.
+
+### 🧩 Instalar la extensión
+
+Mientras llega a las tiendas, se instala desde el zip:
+
+1. Descomprime `PoxiPass-Extension-x.y.z.zip` en una carpeta que no vayas a borrar.
+2. Abre `chrome://extensions` (o `edge://extensions`) y activa el **modo de desarrollador**.
+3. Pulsa **«Cargar descomprimida»** y elige esa carpeta.
+4. Con PoxiPass abierto, pulsa el icono de la extensión → **«Conectar»** y acepta en la app (el código tiene que coincidir).
 
 ## ⌨️ Atajos
 
@@ -94,7 +104,7 @@ Tauri 2 + Rust (todo lo sensible) y React + TypeScript (la interfaz).
 - `start.bat`: modo desarrollo.
 - `deploy.bat`: instalador firmado + portable + `latest.json` en `deploy-hosting\`.
 - `cd src-tauri && cargo test`: tests del núcleo.
-- `node extension/build.mjs`: compila la extensión en `extension/dist` (se carga como «descomprimida»); con `--store`, el zip para las tiendas.
+- `node extension/build.mjs`: compila la extensión en `extension/dist` (se carga como «descomprimida»); con `--store`, además, el zip de la release (con `key`, para cargarla descomprimida) y el de las tiendas (sin `key`).
 
 ## 📄 Licencia
 
@@ -143,6 +153,10 @@ Drive or OneDrive.
 
 Get the latest version from **[Releases](../../releases/latest)**: `PoxiPass-Setup-x.y.z.exe` (installer, updates
 itself) or `PoxiPass-Portable-x.y.z.exe` (portable). Windows 10 or 11, 64-bit.
+
+**Browser extension** (until it's in the stores): unzip `PoxiPass-Extension-x.y.z.zip` into a folder you'll keep, open
+`chrome://extensions` (or `edge://extensions`), turn on **developer mode**, click **"Load unpacked"** and pick that
+folder. With PoxiPass open, click the extension icon → **"Connect"** and accept in the app (the codes must match).
 
 ### 📄 License
 

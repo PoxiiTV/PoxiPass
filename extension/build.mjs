@@ -1,8 +1,9 @@
 // Compila la extensión en extension/dist (cargable como «descomprimida»).
 // Uso: node extension/build.mjs            → dist con `key` (ID fijo de desarrollo)
-//      node extension/build.mjs --store    → además, poxipass-extension-X.Y.Z.zip sin `key` para las tiendas
+//      node extension/build.mjs --store    → además, PoxiPass-Extension-X.Y.Z.zip para la release (con `key`: se carga
+//                                             descomprimida con el ID que acepta la app) y el zip sin `key` para las tiendas
 import { build } from 'vite'
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,6 +38,14 @@ writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifest, null, 2))
 console.log(`Extensión ${version} en ${out}`)
 
 if (store) {
+  const zip = (dir, name) => {
+    const file = join(root, name)
+    rmSync(file, { force: true })
+    // tar.exe de Windows: rutas con «/» como pide el formato zip (Compress-Archive de PowerShell 5 pone «\»)
+    execFileSync(join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe'), ['-a', '-cf', file, '-C', dir, ...readdirSync(dir)], { stdio: 'inherit' })
+    console.log(`Paquete: ${file}`)
+  }
+  zip(out, `PoxiPass-Extension-${version}.zip`)
   // Las tiendas no admiten `key`: asignan su propio ID (hay que añadirlo a EXTENSION_IDS en bridge.rs)
   const tmp = join(root, 'store-tmp')
   rmSync(tmp, { recursive: true, force: true })
@@ -44,9 +53,6 @@ if (store) {
   cpSync(out, tmp, { recursive: true })
   delete manifest.key
   writeFileSync(join(tmp, 'manifest.json'), JSON.stringify(manifest, null, 2))
-  const zip = join(root, `poxipass-extension-${version}.zip`)
-  rmSync(zip, { force: true })
-  execFileSync('powershell', ['-NoProfile', '-Command', `Compress-Archive -Path '${tmp}\\*' -DestinationPath '${zip}'`], { stdio: 'inherit' })
+  zip(tmp, `poxipass-extension-${version}-tiendas.zip`)
   rmSync(tmp, { recursive: true, force: true })
-  console.log(`Paquete para las tiendas: ${zip}`)
 }

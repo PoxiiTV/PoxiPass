@@ -78,16 +78,17 @@ copy /y "%EXE%" "%OUT%\PoxiPass-Portable-%VER%.exe" >nul || goto :fin_error
 call node scripts\latest.mjs "%OUT%"
 if errorlevel 1 goto :fin_error
 
-REM Extension del navegador: zip para Chrome Web Store / Edge Add-ons (va a las tiendas, no a la release)
+REM Extension del navegador: zip para la release (se carga descomprimida) y zip sin key para las tiendas
 call node extension/build.mjs --store
 if errorlevel 1 goto :fin_error
-move /y "extension\poxipass-extension-%VER%.zip" "%OUT%\" >nul || goto :fin_error
+move /y "extension\PoxiPass-Extension-%VER%.zip" "%OUT%\" >nul || goto :fin_error
+move /y "extension\poxipass-extension-%VER%-tiendas.zip" "%OUT%\" >nul || goto :fin_error
 
 REM --------------------------------------------------------------------- pesos
 echo.
 echo  ==========================================================
-echo    Listo:  %OUT%   (sube los 4 archivos a la release v%VER%;
-echo            el zip de la extension va a las tiendas)
+echo    Listo:  %OUT%   (sube los 5 archivos a la release v%VER%;
+echo            el zip "-tiendas" va a Chrome Web Store / Edge Add-ons)
 echo  ==========================================================
 powershell -NoProfile -Command "Get-ChildItem '%OUT%' | ForEach-Object { '   {0,-34} {1,8:N2} MB' -f $_.Name, ($_.Length/1MB) }"
 echo.
