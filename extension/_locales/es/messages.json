@@ -1,0 +1,5 @@
+{
+  "name": { "message": "PoxiPass" },
+  "description": { "message": "Rellena y guarda contraseñas con PoxiPass, tu gestor local y cifrado para Windows." },
+  "cmdFill": { "message": "Rellenar la web abierta" }
+}

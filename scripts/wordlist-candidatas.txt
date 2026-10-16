@@ -1,0 +1,126 @@
+# Candidatas a la Lista Poxi, por orden de preferencia (las primeras ganan su prefijo de 4 letras).
+# scripts/wordlist.mjs filtra y completa hasta 2048 con la lista BIP39 en español.
+
+# Insultos cariñosos y no tan cariñosos
+cabezón cabrón jambo gilipollas capullo pringao mamarracho zascandil botarate petardo chiquillo mequetrefe
+tontolaba memo lerdo zoquete pazguato papanatas cenutrio ceporro merluzo besugo berzotas zopenco majadero
+mentecato badulaque gañán palurdo paleto cateto garrulo pelagatos pelele pardillo panoli pasmarote cazurro
+ganapán gandul haragán jeta caradura canalla granuja golfo bribón truhán tunante rufián pillastre sabandija
+garrapata cretino idiota imbécil necio bobalicón borrico burro acémila cabestro cernícalo mastuerzo melón
+membrillo lechuguino petimetre fantasma flipao chuleta chulapo macarra cani quillo choni pijo cayetano porrero
+porreta borrachín beodo cogorza curda pedorro cagón cagueta gallina miedica acojonao cobarde chivato acusica
+chismoso cotilla maruja bocazas cuentista trolero embustero liante plasta pesado coñazo latazo rollazo peñazo
+muermo sosaina cenizo gafe agonías quejica llorón llorica ñoño mojigato meapilas lameculos pelota trepa
+enchufado estirado creído chulito fanfarrón fantasmón vacilón cachondo guasón payaso bufón mamón cabroncete
+tarugo zángano zarrapastro mangurrián mangante chorizo ladrón carterista gorrón sablista aprovechado jetas
+cantamañana bocachancla boquerón tragaldabas zampabollos tragón glotón comilón zampón ceporrín tontaina
+tontucio tontolculo zote mendrugo melonazo cabezudo cabezota tozudo terco testarudo cansino pelmazo plomo
+paliza chapas palizas peliculero exagerado dramas dramático cuentitis friki empollón pelotillero ratón rata
+tacaño agarrado roñoso rácano cutre hortera chabacano casposo pureta carroza abuelete vejestorio carcamal
+mocoso renacuajo churumbel crío zagal mozo chaval chavalote zagalón morrosko gordinflas gordo flacucho
+canijo enclenque esmirriado tirillas birria pipiolo novato pardilla primo pringado pringue
+chalado chiflado majareta tarado zumbado pirado colgado sonado tocado lelo alelado atontao empanao
+despistao zombi sonámbulo dormilón marmota vago perezoso tumbado galbana pachorra cachazudo
+sinsorgo zorrocloco cagaprisas cagalindes zangolotino tolai tontorrón memez bobada chorrada
+gilipollez tontería sandez pamplina paparrucha patochada payasada mamarrachada bobería chuminada
+
+# Tacos y exclamaciones de toda la vida
+joder hostia coño carajo mierda cojones leche ostras jolín jopetas caray caramba mecachis jope
+narices puñetas porras córcholis rediez repámpanos cáspita diantre demonios cielos atiza toma
+olé ole arsa vaya ojete caguen cagüen copón cojonudo acojonante pollas manda huevos
+
+# Jerga y coñas de aquí
+guay mola chachi flipar flipante tronco colega macho nano pavo majo maja guiri guarro marrano gocho
+cochino mugriento roña cutrez chungo chunga chanchullo pufo timo tangana trifulca bronca follón
+pifia cagada marrón chollo pelotazo pastizal pasta pavos pelas duros perras talegos kilos
+currar curro currela tajo chamba pringar mangar pillar birlar trincar chorar afanar escaquear
+escaqueo pirarse largarse abrirse piro garbeo paseíllo vermú caña cañita tercio litrona botellón
+calimocho cubata copazo chupito chupitazo pelotazo resaca cogorza pedal tablas castaña merluza
+melopea moña pítima tajada mona trompa cebollón ciego colocón globo pedo pedete cuesco ventosidad
+eructo regüeldo moco legaña cerilla caspa sobaco sobaquina pestazo tufo cante
+
+# Comida y bebida
+jamón morcilla salchichón fuet lomo paella tortilla gazpacho salmorejo croqueta churro porra torrija
+bocata bocadillo pincho tapa sangría tinto vermut orujo pacharán carajillo sobao ensaimada polvorón
+turrón mantecado rosquilla pestiño migas cocido fabada pisto lentejas garbanzo botillo cachopo chistorra
+morro oreja torrezno panceta zarangollo chopito calamar pulpo percebe berberecho mejillón sardina
+chanquete pescaíto chipirón gamba cigala nécora almeja navaja zamburiña bacalao merluza rodaballo
+callos caracoles alioli mojo papas pimiento pimentón guindilla piparra boniato castaña bellota
+patatas bravas tigres gilda cecina sobrasada queso manchego torta casadielles farinato cordero
+cochinillo lechazo fartón horchata granizado leche merengada natillas flan arroz quesada
+filloas tarta magdalena sobaos rosco buñuelo huesillo yema perrunilla almendrado garrapiñada
+pipas altramuz cacahuete chuche regaliz pirulí chicle polo cucurucho barquillo palmera bamba
+napolitana cruasán donut chocolate churrería cafelito cortado manchado sacarina descafeinado
+
+# Palabras raras, difíciles y con gracia
+chisgarabís barrabasada rimbombante zarandaja cachivache chirimbolo perifollo cuchipanda jolgorio
+jarana juerga parranda sarao guateque francachela bacanal revoltijo galimatías berenjenal gazapo
+tropezón patidifuso ojiplático turulato boquiabierto pasmado zarrapastroso andrajoso desgalichado
+escuchimizado trapisonda tejemaneje trapicheo zipizape rifirrafe guirigay batiburrillo maremágnum
+cafarnaúm pandemónium zafarrancho zaragata alboroto bullanga jaleo jolgorio cachondeo pitorreo
+choteo guasa recochineo mofa befa chanza chascarrillo chiste coña cuchufleta gracieta ocurrencia
+trola bola patraña camelo engañifa embolado marrullero zalamero pelotero lisonjero halagador
+zalamería carantoña arrumaco achuchón morreo besuqueo magreo sobeteo pellizco collejón colleja
+capón sopapo bofetón guantazo tortazo hostiazo leñazo trompazo castañazo porrazo batacazo morrazo
+piñazo galleta mamporro sopapina tollina zurra somanta paliza tunda soba felpa estacazo garrotazo
+cachiporra garrote estaca tranca porra cayado bastón cachava
+
+# Cosas, bichos y sitios de siempre
+botijo abanico mantilla peineta castañuelas pandereta zambomba botafumeiro cachirulo boina
+montera capote muleta albero trapío chotis pasodoble sevillanas jota sardana muñeira fandango
+bulería rumba tablao flamenco cante quejío palmas jaleador tuna estudiantina verbena romería
+feria caseta farolillo tómbola chocolatería churrería mercadillo rastro chamarilero trastero
+desván sótano azotea terrado patio corrala portal chiscón garito tasca tugurio antro bareto
+chiringuito merendero venta posada fonda mesón tasquita bodega cantina cervecería taberna
+cucaracha mosquito chinche piojo pulga garrapata lagartija salamanquesa culebra sapo rana
+renacuajo grillo cigarra chicharra saltamontes mantis caracol babosa lombriz ciempiés
+cochinilla escarabajo mariquita libélula avispa abejorro moscardón tábano polilla murciélago
+lechuza mochuelo búho urraca grajo cuervo gorrión jilguero canario periquito cotorra loro
+pato oca ganso pavo gallo pollo pollito gallina codorniz perdiz conejo liebre jabalí cabra
+cabrito borrego oveja carnero cordero mula burra jumento pollino rucio percherón jaco penco
+gato gatete minino morrongo chucho perrete galgo podenco mastín chihuahua caniche teckel
+
+# Gente de pueblo y de barrio
+abuela abuelo yayo yaya tito tita cuñao cuñado suegra suegro nuera yerno primito sobrino
+vecina portera conserje sereno basurero barrendero lechero panadero frutero pescadero carnicero
+charcutero tendero quiosquero lotero cartero butanero afilador colchonero chatarrero trapero
+paragüero zapatero sastre costurera modista peluquero barbero churrero castañera heladero
+camarero cocinero pinche fregona fregaplatos friegaplatos aparcacoches gorrilla taxista
+camionero ciclista motorista pelotari torero picador banderillero monosabio mozo maletilla
+
+# Chiquito de la Calzada y coñas de la tele
+fistro pecador pradera condemor jarl diodeno quietor torpedo chanante zasca papafrita pagafantas
+comeflores comemierda tontolnabo pichafloja chupóptero metepatas manazas patoso torpe baboso
+cuñadismo mandanga
+
+# Más insultos y gente rara
+adefesio alcornoque alfeñique alpargata alcahuete arrastrao arrimao asqueroso apalancao andoba
+aceitunero amiguete agüelo abollao desgraciao dabuten debuti descojone desmadre desparrame
+destarifao dominguero diablillo dichoso degenerao desastre despojo donjuán echao embutido
+empachado empalagoso enano engendro esbirro escoria espantajo esperpento estropicio energúmeno
+espabilao estraperlo escaldao esnob fardón farruco fiambre filfa fisgón flojo forajido friolero
+fritanga fullero fulano harapiento hereje hortelano hurón huevón inútil iluso infeliz insensato
+inepto incordio ignorante infame lacayo ladino lagarto lambrucio lameplatos lapa lechón lenguaraz
+liendre lila lipendi listillo lumbreras lunático nabo niñato obtuso ogro orangután orejudo orco
+orondo osado ombligo ojazos rajao rancio raspa rebuzno refunfuñón remolón repipi reventao ridículo
+ruin sacamuelas salao sieso simplón sansirolé soplón soponcio ufano vándalo vejete verdulera
+viejoverde vividor vulgar ñapa matasanos tarambana pelafustán pusilánime gazmoño zafio
+
+# Verbos de barrio
+achuchar alucinar apoquinar arramplar atiborrar berrear berrinche chinchar chiripa cascar
+fardar gorronear liarla morrear palmar rajar sobar vacilar zampar zumbar endiñar escaquearse
+
+# Más comida
+aceituna anchoa albóndiga alcachofa alcaparra acelga ajoblanco besamel berenjena brocheta
+calabacín cebolleta cocochas codillo costilla dorada empanada escabeche flamenquín gachas huevo
+judías lacón longaniza lubina mojama ñoquis olla pipirrana quisquilla rabo rabadilla rebozado
+remolacha requesón salpicón sesos tocino tomate trucha uvas vieira
+
+# Palabras con solera
+abigarrado albricias algarabía almibarado amilanado andurrial aquelarre arrebol atolondrao baladí
+barahúnda barullo bisoño boato bodrio bonachón buhardilla bullicio cachaza caterva chafardero
+chiribitas cuchitril dédalo denuedo desaguisado dislate efluvio embeleco embrollo enjundia entuerto
+esmirriao estulticia fárrago fruslería garambaina hecatombe inefable jerigonza lisonja macanudo
+meollo mojiganga nimiedad ojeriza pachucho palabrería pamema panoplia pardiez patulea pergeñar
+pimpollo pingajo piripi pocholo quimera rebujina regodeo repelús retahíla sandunga tabarra
+tentempié truculento verborrea vericueto zaherir zalagarda zarzuela zurrapa

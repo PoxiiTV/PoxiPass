@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_name__",
+  "description": "__MSG_description__",
+  "default_locale": "es",
+  "version": "0.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2jkALfyVSxsn2e4j7TsEX/HYBlDnnEr56O0Zl+wYEZGqF41LGwqsrWFGzMj/XsgrFzXfX756OZ3BKpLDPRcJX4xAaeqrvyIBYn2c+jmo+ehUQVrXKYc1f592UqGEUw6KPC1DUEpJaIMpF3x2HLm3sumYKvqP4goFymtONfiKkyT1GC520A39SxYC2iXoHWPLb9BdpxaY9nly8L5zfwi0IHetfHjIgh7yzI3omxEUvxLtNNBuk7/8OLT29GMXXO8YFKpvmWG4Yx/CiAs8LDBr8G6tdUM3M9+ornrhp8mZKtZV0v7TEjPcDIAmlfJVwWAyVSOPniepkGYs5dQ5pP0g6wIDAQAB",
+  "minimum_chrome_version": "121",
+  "icons": { "32": "icons/32.png", "64": "icons/64.png", "128": "icons/128.png" },
+  "action": {
+    "default_title": "PoxiPass",
+    "default_popup": "popup.html",
+    "default_icon": { "32": "icons/32.png", "64": "icons/64.png" }
+  },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["nativeMessaging", "storage", "activeTab"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [{ "resources": ["nunito.woff2"], "matches": ["http://*/*", "https://*/*"], "use_dynamic_url": true }],
+  "commands": {
+    "fill-login": {
+      "suggested_key": { "default": "Ctrl+Shift+L" },
+      "description": "__MSG_cmdFill__"
+    }
+  }
+}

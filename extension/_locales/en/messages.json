@@ -1,0 +1,5 @@
+{
+  "name": { "message": "PoxiPass" },
+  "description": { "message": "Fill in and save passwords with PoxiPass, your local, encrypted manager for Windows." },
+  "cmdFill": { "message": "Fill in the open website" }
+}
