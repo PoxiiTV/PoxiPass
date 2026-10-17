@@ -175,6 +175,15 @@ export interface Preview {
   format: string
   count: number
   sample: string[]
+  files: number
+  /** Va en claro: al acabar se ofrece borrarlo (un .kdbx no) */
+  plain: boolean
+}
+
+/** Contraseña y archivo llave de un .kdbx */
+export interface ImportKey {
+  password: string
+  keyfile: string | null
 }
 
 export const isAppError = (e: unknown): e is AppError => typeof e === 'object' && e !== null && 'code' in e
@@ -245,8 +254,9 @@ export const api = {
   auditReport: () => call<Report>('audit_report'),
   hibpCheck: () => call<Report>('hibp_check'),
 
-  importPreview: (path: string) => call<Preview>('import_preview', { path }),
-  importRun: () => call<{ added: number; skipped: number }>('import_run'),
+  importPreview: (path: string, key?: ImportKey) => call<Preview>('import_preview', { path, password: key?.password || null, keyfile: key?.keyfile ?? null }),
+  importRun: (key?: ImportKey) =>
+    call<{ added: number; skipped: number; filesSkipped: number }>('import_run', { password: key?.password || null, keyfile: key?.keyfile ?? null }),
   importDeleteSource: () => call<void>('import_delete_source'),
   exportCsv: (path: string) => call<number>('export_csv', { path }),
   exportCopy: (path: string) => call<void>('export_copy', { path }),

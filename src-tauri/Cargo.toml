@@ -1,6 +1,6 @@
 [package]
 name = "poxipass"
-version = "0.3.0"
+version = "0.3.1"
 description = "PoxiPass - gestor y generador de contraseñas"
 edition = "2021"
 rust-version = "1.85"
@@ -44,6 +44,8 @@ psl = "2"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 tokio = { version = "1", features = ["time", "rt", "net", "io-util", "io-std", "sync", "macros"] }
+keepass = "0.15"
+zip = { version = "4", default-features = false, features = ["deflate-flate2"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
@@ -81,3 +83,10 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# Argon2 de los .kdbx: sin optimizar tarda decenas de segundos en desarrollo
+[profile.dev.package.rust-argon2]
+opt-level = 3
+
+[dev-dependencies]
+keepass = { version = "0.15", features = ["save_kdbx4"] }

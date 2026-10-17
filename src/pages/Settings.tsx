@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Database, Globe, History, Info, Keyboard, Palette, ShieldCheck, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { api, type Backup, type Config, type PairedBrowser, type Preview } from '../lib/api'
+import { api, isAppError, type Backup, type Config, type ImportKey, type PairedBrowser, type Preview } from '../lib/api'
 import { ask, pickFile, refreshEntries, setState, toast, updateConfig, useStore } from '../lib/store'
 import { attempt, fail } from '../lib/actions'
 import { applyTheme } from '../lib/theme'
 import { checkForUpdates, RELEASES } from '../lib/update'
-import { useT } from '../i18n'
+import { errorText, useT } from '../i18n'
 import { ago, bytes, date } from '../lib/format'
 import { Select } from '../components/controls'
 import { Modal, PasswordInput, StrengthBar, Switch, useStrength } from '../components/ui'
@@ -212,6 +212,11 @@ export function Settings(): React.JSX.Element {
   const [kitWords, setKitWords] = useState<string[] | null>(null)
   const [kitConfirm, setKitConfirm] = useState(false)
   const [preview, setPreview] = useState<Preview | null>(null)
+  // .kdbx: archivo que espera su contraseña (o archivo llave) y lo escrito, que se reenvía al importar
+  const [kdbxPath, setKdbxPath] = useState<string | null>(null)
+  const [importKey, setImportKey] = useState<ImportKey>({ password: '', keyfile: null })
+  const [kdbxErr, setKdbxErr] = useState('')
+  const [kdbxBusy, setKdbxBusy] = useState(false)
   const [showPw, setShowPw] = useState(false)
   const [vaultName, setVaultName] = useState(info?.name ?? '')
   const [busyKeys, setBusyKeys] = useState<string[]>([])
@@ -236,10 +241,32 @@ export function Settings(): React.JSX.Element {
   const close = (): void => setState({ settingsOpen: false })
 
   const doImport = async (): Promise<void> => {
-    const p = await pickFile({ mode: 'open', title: t('settings.importTitle'), exts: ['csv', 'json'] })
+    const p = await pickFile({ mode: 'open', title: t('settings.importTitle'), exts: ['csv', 'json', 'kdbx', '1pux'] })
     if (!p) return
-    const pr = await attempt(api.importPreview(p))
-    if (pr) setPreview(pr)
+    setImportKey({ password: '', keyfile: null })
+    try {
+      setPreview(await api.importPreview(p))
+    } catch (e) {
+      if (!isAppError(e) || e.code !== 'import.needsPassword') return fail(e)
+      setKdbxErr('')
+      setKdbxPath(p)
+    }
+  }
+  const openKdbx = async (): Promise<void> => {
+    if (!kdbxPath || kdbxBusy || (!importKey.password && !importKey.keyfile)) return
+    setKdbxBusy(true)
+    try {
+      setPreview(await api.importPreview(kdbxPath, importKey))
+      setKdbxPath(null)
+    } catch (e) {
+      setKdbxErr(errorText(e))
+    } finally {
+      setKdbxBusy(false)
+    }
+  }
+  const closeImport = (): void => {
+    setPreview(null)
+    setImportKey({ password: '', keyfile: null })
   }
 
   const body: Record<Cat, React.JSX.Element> = {
@@ -616,10 +643,60 @@ export function Settings(): React.JSX.Element {
           </div>
         </Modal>
       )}
+      {kdbxPath && (
+        <Modal onClose={() => setKdbxPath(null)}>
+          <h2>{t('settings.importKdbx')}</h2>
+          <p>{t('settings.importKdbxHint')}</p>
+          <div className="field-group">
+            <PasswordInput
+              value={importKey.password}
+              onChange={(password) => setImportKey({ ...importKey, password })}
+              autoFocus
+              bad={!!kdbxErr}
+              onEnter={() => void openKdbx()}
+            />
+          </div>
+          <div className="field-group">
+            <label className="label">{t('settings.importKeyfile')}</label>
+            <div className="row">
+              <button
+                className="btn btn-sm"
+                onClick={async () => {
+                  const k = await pickFile({ mode: 'open', title: t('settings.importKeyfileTitle'), exts: [] })
+                  if (k) setImportKey({ ...importKey, keyfile: k })
+                }}
+              >
+                {t('settings.importKeyfilePick')}
+              </button>
+              {importKey.keyfile && (
+                <>
+                  <span className="muted small" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{importKey.keyfile.split(/[\/]/).pop()}</span>
+                  <button className="icon-btn" onClick={() => setImportKey({ ...importKey, keyfile: null })} aria-label={t('editor.remove')} data-tip={t('editor.remove')}>
+                    <X size={15} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          {kdbxErr && <div className="hint danger-text">{kdbxErr}</div>}
+          <div className="modal-actions">
+            <button className="btn btn-ghost" onClick={() => setKdbxPath(null)}>
+              {t('common.cancel')}
+            </button>
+            <button className="btn btn-primary" disabled={kdbxBusy || (!importKey.password && !importKey.keyfile)} onClick={() => void openKdbx()}>
+              {t('settings.importOpen')}
+            </button>
+          </div>
+        </Modal>
+      )}
       {preview && (
-        <Modal onClose={() => setPreview(null)}>
+        <Modal onClose={closeImport}>
           <h2>{t('settings.import')}</h2>
-          <p>{t('settings.importPreview', { format: preview.format, n: preview.count })}</p>
+          <p>
+            {preview.files
+              ? t('settings.importPreviewFiles', { format: preview.format, n: preview.count, m: preview.files })
+              : t('settings.importPreview', { format: preview.format, n: preview.count })}
+          </p>
           <div className="chips">
             {preview.sample.map((s, i) => (
               <span className="chip" key={i}>
@@ -628,19 +705,22 @@ export function Settings(): React.JSX.Element {
             ))}
           </div>
           <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setPreview(null)}>
+            <button className="btn btn-ghost" onClick={closeImport}>
               {t('common.cancel')}
             </button>
             <button
               className="btn btn-primary"
               disabled={!preview.count}
               onClick={async () => {
-                setPreview(null)
-                const r = await attempt(api.importRun())
+                const { plain } = preview
+                const key = importKey
+                closeImport()
+                const r = await attempt(api.importRun(key))
                 if (r === undefined) return
                 toast(r.skipped ? t('settings.importedSkipped', { n: r.added, m: r.skipped }) : t('settings.imported', { n: r.added }))
+                if (r.filesSkipped) toast(t('settings.importFilesSkipped', { m: r.filesSkipped }), 'info', 6)
                 await refreshEntries()
-                if (await ask(t('settings.importDelete'), t('settings.importDeleteYes'))) {
+                if (plain && (await ask(t('settings.importDelete'), t('settings.importDeleteYes')))) {
                   if ((await attempt(api.importDeleteSource())) !== undefined) toast(t('settings.importDeleted'))
                 }
               }}

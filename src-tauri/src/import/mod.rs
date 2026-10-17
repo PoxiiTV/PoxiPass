@@ -1,11 +1,15 @@
-//! Importar desde Chrome/Edge, Firefox, Bitwarden (CSV y JSON) y KeePass/KeePassXC. Un solo lector de CSV que
-//! reconoce las columnas por su nombre, así que también vale para CSV «a mano». Exporta en el CSV de Bitwarden,
-//! que entienden casi todos los gestores.
+//! Importar desde Chrome/Edge, Firefox, Bitwarden (CSV y JSON), KeePass/KeePassXC (CSV y `.kdbx`) y
+//! 1Password (`.1pux`). Un solo lector de CSV que reconoce las columnas por su nombre, así que también vale para
+//! CSV «a mano». Exporta en el CSV de Bitwarden, que entienden casi todos los gestores.
+
+mod keepass;
+mod onepassword;
 
 use crate::error::{AppError, Res};
 use crate::vault::model::{FieldKind, Kind};
 use serde::Serialize;
 use serde_json::Value;
+use zeroize::Zeroizing;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImportedField {
@@ -17,12 +21,33 @@ pub struct ImportedField {
 }
 
 #[derive(Debug, Clone)]
+pub struct ImportedFile {
+    pub name: String,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Imported {
     pub kind: Kind,
     pub title: String,
     pub folder: Option<String>,
     pub favorite: bool,
     pub fields: Vec<ImportedField>,
+    pub tags: Vec<String>,
+    pub archived: bool,
+    pub files: Vec<ImportedFile>,
+}
+
+impl Imported {
+    fn new(kind: Kind, title: String, folder: Option<String>, favorite: bool, fields: Vec<ImportedField>) -> Self {
+        Imported { kind, title, folder, favorite, fields, tags: vec![], archived: false, files: vec![] }
+    }
+}
+
+/// Lo que abre un archivo cifrado (`.kdbx`): su contraseña y/o su archivo llave.
+pub struct Key {
+    pub password: Zeroizing<String>,
+    pub keyfile: Option<Zeroizing<Vec<u8>>>,
 }
 
 #[derive(Serialize)]
@@ -31,6 +56,9 @@ pub struct Preview {
     pub format: String,
     pub count: usize,
     pub sample: Vec<String>,
+    pub files: usize,
+    /// El archivo va en claro (se ofrece borrarlo al acabar). Un `.kdbx` no: es el llavero de KeePass.
+    pub plain: bool,
 }
 
 fn f(key: &'static str, value: &str) -> Option<ImportedField> {
@@ -41,10 +69,11 @@ fn f(key: &'static str, value: &str) -> Option<ImportedField> {
     let (secret, kind) = match key {
         "password" => (true, FieldKind::Password),
         "totp" => (true, FieldKind::Totp),
-        "notes" | "content" => (true, FieldKind::Multiline),
+        "notes" | "content" | "privatekey" => (true, FieldKind::Multiline),
+        "address" | "publickey" => (false, FieldKind::Multiline),
         "url" => (false, FieldKind::Url),
         "email" => (false, FieldKind::Email),
-        "number" | "cvv" | "pin" | "document" => (true, FieldKind::Password),
+        "number" | "cvv" | "pin" | "document" | "licensekey" | "iban" | "passphrase" => (true, FieldKind::Password),
         _ => (false, FieldKind::Text),
     };
     Some(ImportedField { key, label: String::new(), value: value.into(), secret, kind })
@@ -66,8 +95,17 @@ fn host_title(url: &str) -> String {
     rest.split(['/', '?', '#', ':']).next().unwrap_or("").trim_start_matches("www.").to_string()
 }
 
-/// Lee un archivo (CSV o JSON de Bitwarden). Quita el BOM y acepta `,` o `;` como separador.
-pub fn parse(bytes: &[u8]) -> Res<(String, Vec<Imported>)> {
+const KDBX_MAGIC: [u8; 4] = [0x03, 0xd9, 0xa2, 0x9a];
+
+/// Lee un archivo. Se reconoce por sus primeros bytes: `.kdbx` (pide `key`), zip (`.1pux`), JSON de Bitwarden o
+/// CSV (quita el BOM y acepta `,` o `;` como separador).
+pub fn parse(bytes: &[u8], key: Option<&Key>) -> Res<(String, Vec<Imported>)> {
+    if bytes.starts_with(&KDBX_MAGIC) {
+        return Ok(("KeePass (KDBX)".into(), keepass::parse(bytes, key.ok_or_else(|| AppError::new("import.needsPassword"))?)?));
+    }
+    if bytes.starts_with(b"PK\x03\x04") {
+        return Ok(("1Password (1PUX)".into(), onepassword::parse(bytes)?));
+    }
     let text = String::from_utf8_lossy(bytes);
     let text = text.trim_start_matches('\u{feff}');
     if text.trim_start().starts_with('{') {
@@ -132,13 +170,13 @@ fn csv_any(text: &str) -> Res<(String, Vec<Imported>)> {
         if fields.is_empty() && title.is_empty() {
             continue;
         }
-        out.push(Imported {
-            kind: if is_note { Kind::Note } else { Kind::Login },
-            title: if title.is_empty() { "Sin título".into() } else { title },
-            folder: (!folder.is_empty()).then_some(folder),
-            favorite: matches!(get(c_fav).trim(), "1" | "true"),
+        out.push(Imported::new(
+            if is_note { Kind::Note } else { Kind::Login },
+            if title.is_empty() { "Sin título".into() } else { title },
+            (!folder.is_empty()).then_some(folder),
+            matches!(get(c_fav).trim(), "1" | "true"),
             fields,
-        });
+        ));
     }
     Ok((format.into(), out))
 }
@@ -198,20 +236,26 @@ fn bitwarden_json(text: &str) -> Res<Vec<Imported>> {
             for cf in it["fields"].as_array().into_iter().flatten() {
                 fields.push(custom(s(cf, "name"), &cf["value"].as_str().map(String::from).unwrap_or_default(), cf["type"].as_i64() == Some(1)));
             }
-            Imported {
+            Imported::new(
                 kind,
-                title: s(it, "name").to_string(),
-                folder: it["folderId"].as_str().and_then(|id| folders.get(id)).map(|n| n.to_string()),
-                favorite: it["favorite"].as_bool().unwrap_or(false),
-                fields: fields.into_iter().flatten().collect(),
-            }
+                s(it, "name").to_string(),
+                it["folderId"].as_str().and_then(|id| folders.get(id)).map(|n| n.to_string()),
+                it["favorite"].as_bool().unwrap_or(false),
+                fields.into_iter().flatten().collect(),
+            )
         })
         .collect())
 }
 
-pub fn preview(bytes: &[u8]) -> Res<Preview> {
-    let (format, items) = parse(bytes)?;
-    Ok(Preview { format, count: items.len(), sample: items.iter().take(5).map(|i| i.title.clone()).collect() })
+pub fn preview(bytes: &[u8], key: Option<&Key>) -> Res<Preview> {
+    let (format, items) = parse(bytes, key)?;
+    Ok(Preview {
+        format,
+        count: items.len(),
+        sample: items.iter().take(5).map(|i| i.title.clone()).collect(),
+        files: items.iter().map(|i| i.files.len()).sum(),
+        plain: !bytes.starts_with(&KDBX_MAGIC),
+    })
 }
 
 /// Fila de exportación ya en claro: carpeta, favorito, tipo, título, campos (clave, etiqueta, valor).
@@ -263,7 +307,7 @@ mod tests {
 
     #[test]
     fn chrome() {
-        let (fmt, v) = parse(b"name,url,username,password,note\nNetflix,https://www.netflix.com/login,poxi@x.com,hunter2,\n,https://www.twitch.tv/,poxiitv,abc,nota").unwrap();
+        let (fmt, v) = parse(b"name,url,username,password,note\nNetflix,https://www.netflix.com/login,poxi@x.com,hunter2,\n,https://www.twitch.tv/,poxiitv,abc,nota", None).unwrap();
         assert_eq!(fmt, "Chrome / Edge");
         assert_eq!(v.len(), 2);
         assert_eq!((v[0].title.as_str(), val(&v[0], "password")), ("Netflix", "hunter2"));
@@ -273,13 +317,13 @@ mod tests {
 
     #[test]
     fn firefox() {
-        let (fmt, v) = parse(b"\"url\",\"username\",\"password\",\"httpRealm\",\"formActionOrigin\",\"guid\",\"timeCreated\",\"timeLastUsed\",\"timePasswordChanged\"\n\"https://accounts.google.com\",\"yo\",\"pw\",,\"\",\"{1}\",\"1\",\"1\",\"1\"").unwrap();
+        let (fmt, v) = parse(b"\"url\",\"username\",\"password\",\"httpRealm\",\"formActionOrigin\",\"guid\",\"timeCreated\",\"timeLastUsed\",\"timePasswordChanged\"\n\"https://accounts.google.com\",\"yo\",\"pw\",,\"\",\"{1}\",\"1\",\"1\",\"1\"", None).unwrap();
         assert_eq!((fmt.as_str(), v[0].title.as_str(), val(&v[0], "username")), ("Firefox", "accounts.google.com", "yo"));
     }
 
     #[test]
     fn bitwarden_csv_with_bom_note_and_folder() {
-        let (fmt, v) = parse("\u{feff}folder,favorite,type,name,notes,fields,reprompt,login_uri,login_username,login_password,login_totp\nCurro,1,login,GitHub,,,0,https://github.com,poxi,pw,JBSWY3DPEHPK3PXP\n,,note,Secreto,\"línea 1\nlínea 2\",,0,,,,".as_bytes()).unwrap();
+        let (fmt, v) = parse("\u{feff}folder,favorite,type,name,notes,fields,reprompt,login_uri,login_username,login_password,login_totp\nCurro,1,login,GitHub,,,0,https://github.com,poxi,pw,JBSWY3DPEHPK3PXP\n,,note,Secreto,\"línea 1\nlínea 2\",,0,,,,".as_bytes(), None).unwrap();
         assert_eq!(fmt, "Bitwarden (CSV)");
         assert_eq!(v[0].folder.as_deref(), Some("Curro"));
         assert!(v[0].favorite);
@@ -290,9 +334,9 @@ mod tests {
 
     #[test]
     fn keepassxc_and_semicolon_excel() {
-        let (fmt, v) = parse(b"\"Group\",\"Title\",\"Username\",\"Password\",\"URL\",\"Notes\",\"TOTP\"\n\"Root/Bancos\",\"Banco\",\"yo\",\"pw\",\"\",\"\",\"\"").unwrap();
+        let (fmt, v) = parse(b"\"Group\",\"Title\",\"Username\",\"Password\",\"URL\",\"Notes\",\"TOTP\"\n\"Root/Bancos\",\"Banco\",\"yo\",\"pw\",\"\",\"\",\"\"", None).unwrap();
         assert_eq!((fmt.as_str(), v[0].folder.as_deref()), ("KeePassXC", Some("Bancos")));
-        let (_, v) = parse("\u{feff}nombre;usuario;contraseña;url\nCorreo;yo;p,q;https://mail.com".as_bytes()).unwrap();
+        let (_, v) = parse("\u{feff}nombre;usuario;contraseña;url\nCorreo;yo;p,q;https://mail.com".as_bytes(), None).unwrap();
         assert_eq!(v.len(), 1);
         assert_eq!(val(&v[0], "password"), "p,q");
     }
@@ -304,19 +348,19 @@ mod tests {
           {"type":3,"name":"Visa","card":{"cardholderName":"Poxi","number":"4111111111111111","expMonth":"12","expYear":"2030","code":"123"}},
           {"type":4,"name":"Yo","identity":{"firstName":"Poxi","lastName":"TV","email":"a@b.c","passportNumber":"X1"}},
           {"type":2,"name":"Nota","notes":"hola"}]}"#;
-        let (_, v) = parse(json.as_bytes()).unwrap();
+        let (_, v) = parse(json.as_bytes(), None).unwrap();
         assert_eq!(v.len(), 4);
         assert_eq!((v[0].folder.as_deref(), v[0].favorite), (Some("Personal"), true));
         assert!(v[0].fields.iter().any(|f| f.label == "PIN" && f.secret));
         assert_eq!((v[1].kind, val(&v[1], "number"), val(&v[1], "expiry")), (Kind::Card, "4111111111111111", "12/2030"));
         assert_eq!((v[2].kind, val(&v[2], "document")), (Kind::Identity, "X1"));
         assert_eq!(val(&v[3], "content"), "hola");
-        assert_eq!(parse(br#"{"encrypted":true}"#).unwrap_err().code, "import.encrypted");
+        assert_eq!(parse(br#"{"encrypted":true}"#, None).unwrap_err().code, "import.encrypted");
     }
 
     #[test]
     fn unknown_and_export_roundtrip() {
-        assert_eq!(parse(b"a,b\n1,2").unwrap_err().code, "import.unknown");
+        assert_eq!(parse(b"a,b\n1,2", None).unwrap_err().code, "import.unknown");
         let rows = vec![ExportRow {
             folder: "Curro".into(),
             favorite: true,
@@ -324,7 +368,7 @@ mod tests {
             title: "Git, Hub".into(),
             fields: vec![("username".into(), "".into(), "yo".into()), ("password".into(), "".into(), "p\"w".into()), ("".into(), "PIN".into(), "1".into())],
         }];
-        let (fmt, v) = parse(&export_csv(&rows).unwrap()).unwrap();
+        let (fmt, v) = parse(&export_csv(&rows).unwrap(), None).unwrap();
         assert_eq!(fmt, "Bitwarden (CSV)");
         assert_eq!((v[0].title.as_str(), val(&v[0], "password")), ("Git, Hub", "p\"w"));
     }

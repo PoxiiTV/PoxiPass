@@ -4,7 +4,7 @@
 
 <br />
 
-![Versión](https://img.shields.io/badge/versión-0.3.0-3b82f6?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-0.3.1-3b82f6?style=flat-square)
 ![Plataforma](https://img.shields.io/badge/Windows-10%20%7C%2011-34d399?style=flat-square)
 ![Cifrado](https://img.shields.io/badge/cifrado-Argon2id%20%2B%20XChaCha20-ffd25f?style=flat-square)
 ![Sin nube](https://img.shields.io/badge/nube-ninguna-38bdf8?style=flat-square)
@@ -39,7 +39,7 @@ Si quieres tenerlo en varios PCs, mete el archivo en Drive u OneDrive y listo.
 - 🔒 **Entradas sensibles**: piden Windows Hello para verlas, copiarlas o escribirlas.
 - ☁️ **A prueba de Drive/OneDrive**: si el llavero cambia en otro PC, se fusiona entrada a entrada.
 - 🗄️ **Archivo, duplicados, selección múltiple y arrastrar a carpetas.**
-- 📥 **Importa** desde Chrome, Edge, Firefox, Bitwarden, KeePass y KeePassXC.
+- 📥 **Importa** desde Chrome, Edge, Firefox, Bitwarden, KeePass y KeePassXC (también su `.kdbx` cifrado) y 1Password (`.1pux`), con adjuntos y 2FA.
 - 💾 **Copias automáticas** cifradas (también en una carpeta extra, como un USB), restaurables desde la app aunque hayas borrado el archivo.
 - 🎨 Temas oscuro y claro, 6 colores, español e inglés. Se actualiza solo.
 
@@ -133,7 +133,7 @@ Drive or OneDrive.
 - 🔒 **Sensitive entries**: ask for Windows Hello to view, copy or type them.
 - ☁️ **Drive/OneDrive-proof**: if the keychain changes on another PC, it's merged entry by entry.
 - 🗄️ **Archive, duplicates, multi-select and drag to folders.**
-- 📥 **Import** from Chrome, Edge, Firefox, Bitwarden, KeePass and KeePassXC.
+- 📥 **Import** from Chrome, Edge, Firefox, Bitwarden, KeePass and KeePassXC (including their encrypted `.kdbx`) and 1Password (`.1pux`), with attachments and 2FA.
 - 💾 **Automatic encrypted backups** (also to an extra folder such as a USB drive), restorable from the app even if you deleted the file.
 - 🎨 Dark and light themes, 6 colors, Spanish and English. Updates itself.
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1
+
+### 🇪🇸 Español
+
+- 📥 **Vente desde KeePass y 1Password**: importa directamente el `.kdbx` de KeePass/KeePassXC (con su contraseña y/o archivo llave) y el `.1pux` de 1Password. Entran las carpetas, etiquetas, 2FA, campos personalizados y adjuntos; tarjetas, identidades, wifi, licencias, cuentas bancarias, documentos y claves SSH llegan con su tipo. Lo de la papelera no se importa y lo archivado en 1Password llega archivado.
+- 🧩 El menú de la extensión sale al lado contrario del desplegable del navegador, para que no se tapen.
+
+### 🇬🇧 English
+
+- 📥 **Switch from KeePass and 1Password**: import KeePass/KeePassXC `.kdbx` files directly (with their password and/or key file) and 1Password `.1pux` exports. Folders, tags, 2FA, custom fields and attachments come along; cards, identities, Wi-Fi, licenses, bank accounts, documents and SSH keys keep their type. Items in the recycle bin are skipped and items archived in 1Password arrive archived.
+- 🧩 The extension menu opens on the opposite side of the browser's own dropdown, so they don't cover each other.
+
 ## 0.3.0
 
 ### 🇪🇸 Español

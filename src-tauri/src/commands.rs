@@ -26,7 +26,7 @@ use zeroize::Zeroizing;
 const MAX_ENTRIES: usize = 20_000;
 const MAX_FIELDS: usize = 60;
 const MAX_VALUE: usize = 64 * 1024;
-const MAX_ATTACHMENT: u64 = 10 * 1024 * 1024;
+pub(crate) const MAX_ATTACHMENT: u64 = 10 * 1024 * 1024;
 const MAX_ATTACHMENTS_TOTAL: u64 = 50 * 1024 * 1024;
 
 pub struct AppState {
@@ -1124,21 +1124,45 @@ pub async fn hibp_check(st: State<'_, AppState>) -> Res<Report> {
 
 // ————————————————————————————————————————————————————————————— importar / exportar
 
-#[tauri::command]
-pub fn import_preview(st: State<'_, AppState>, path: String) -> Res<Preview> {
-    let p = PathBuf::from(&path);
-    if std::fs::metadata(&p)?.len() > 50 * 1024 * 1024 {
+/// Lee el archivo a importar (hasta 200 MB: un `.kdbx` o un `.1pux` llevan los adjuntos dentro).
+fn import_read(p: &PathBuf) -> Res<Zeroizing<Vec<u8>>> {
+    if std::fs::metadata(p)?.len() > 200 * 1024 * 1024 {
         return Err(AppError::new("input.tooLong"));
     }
-    let out = import::preview(&Zeroizing::new(std::fs::read(&p)?))?;
+    Ok(Zeroizing::new(std::fs::read(p)?))
+}
+
+/// Contraseña y/o archivo llave de un `.kdbx` (no se guardan: cada paso los recibe de la interfaz)
+fn import_key(password: Option<String>, keyfile: Option<String>) -> Res<Option<import::Key>> {
+    let keyfile = match keyfile {
+        Some(k) => {
+            if std::fs::metadata(&k)?.len() > 1024 * 1024 {
+                return Err(AppError::new("import.badKeyFile"));
+            }
+            Some(Zeroizing::new(std::fs::read(&k)?))
+        }
+        None => None,
+    };
+    let password = Zeroizing::new(password.unwrap_or_default());
+    check_len(&password, 1024)?;
+    Ok((!password.is_empty() || keyfile.is_some()).then_some(import::Key { password, keyfile }))
+}
+
+#[tauri::command]
+pub async fn import_preview(st: State<'_, AppState>, path: String, password: Option<String>, keyfile: Option<String>) -> Res<Preview> {
+    let p = PathBuf::from(&path);
+    let out = import::preview(&import_read(&p)?, import_key(password, keyfile)?.as_ref())?;
     *st.last_import.lock().unwrap_or_else(|e| e.into_inner()) = Some(p);
     Ok(out)
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportResult {
     pub added: usize,
     pub skipped: usize,
+    /// Adjuntos que no caben (10 MB cada uno, 50 MB en todo el llavero)
+    pub files_skipped: usize,
 }
 
 /// Huella de «la misma entrada»: título, usuario y contraseña (esta, sin abrirla: HMAC con la clave de sesión)
@@ -1147,9 +1171,9 @@ fn dedupe_key(s: &Session, title: &str, user: &str, password: &[u8]) -> (String,
 }
 
 #[tauri::command]
-pub fn import_run(st: State<'_, AppState>) -> Res<ImportResult> {
+pub async fn import_run(st: State<'_, AppState>, password: Option<String>, keyfile: Option<String>) -> Res<ImportResult> {
     let p = st.last_import.lock().unwrap_or_else(|e| e.into_inner()).clone().ok_or_else(|| AppError::new("io.notFound"))?;
-    let (_, items) = import::parse(&Zeroizing::new(std::fs::read(&p)?))?;
+    let (_, items) = import::parse(&import_read(&p)?, import_key(password, keyfile)?.as_ref())?;
     mutate(&st, |s| {
         if s.vault.entries.len() + items.len() > MAX_ENTRIES {
             return Err(AppError::new("input.tooMany"));
@@ -1166,7 +1190,8 @@ pub fn import_run(st: State<'_, AppState>) -> Res<ImportResult> {
                 dedupe_key(s, &e.title, &plain_of(e, "username"), &pw)
             })
             .collect();
-        let (mut added, mut skipped) = (0, 0);
+        let (mut added, mut skipped, mut files_skipped) = (0, 0, 0);
+        let mut total: u64 = s.vault.entries.iter().flat_map(|e| &e.attachments).map(|a| a.size).sum();
         for it in items {
             let get = |k: &str| it.fields.iter().find(|f| f.key == k).map(|f| f.value.as_str()).unwrap_or("");
             if !seen.insert(dedupe_key(s, &it.title, get("username"), get("password").as_bytes())) {
@@ -1190,14 +1215,29 @@ pub fn import_run(st: State<'_, AppState>) -> Res<ImportResult> {
                 kind: it.kind,
                 title: it.title.chars().take(200).collect(),
                 folder,
-                tags: vec![],
+                tags: it.tags.iter().map(|t| t.trim().chars().take(40).collect::<String>()).filter(|t| !t.is_empty()).take(30).collect(),
                 favorite: it.favorite,
                 fields: it
                     .fields
                     .iter()
+                    .filter(|f| f.value.len() <= MAX_VALUE)
+                    .take(MAX_FIELDS)
                     .map(|f| Field { id: new_id(), key: f.key.into(), label: f.label.clone(), value: Sv::text(&f.value), secret: f.secret, kind: f.kind })
                     .collect(),
-                attachments: vec![],
+                attachments: it
+                    .files
+                    .into_iter()
+                    .filter_map(|a| {
+                        let size = a.data.len() as u64;
+                        if size > MAX_ATTACHMENT || total + size > MAX_ATTACHMENTS_TOTAL {
+                            files_skipped += 1;
+                            return None;
+                        }
+                        total += size;
+                        let name: String = a.name.chars().take(200).collect();
+                        Some(Attachment { id: new_id(), mime: mime_of(&name), name, size, data: Sv::Plain(a.data) })
+                    })
+                    .collect(),
                 icon: None,
                 autotype: None,
                 history: vec![],
@@ -1206,13 +1246,13 @@ pub fn import_run(st: State<'_, AppState>) -> Res<ImportResult> {
                 used: None,
                 deleted: None,
                 breach: None,
-                archived: false,
+                archived: it.archived,
                 protected: false,
             };
             e.seal(&s.sealer);
             s.vault.entries.push(e);
         }
-        Ok(ImportResult { added, skipped })
+        Ok(ImportResult { added, skipped, files_skipped })
     })
 }
 
